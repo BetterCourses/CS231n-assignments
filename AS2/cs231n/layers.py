@@ -176,7 +176,7 @@ def batchnorm_forward(x, gamma, beta, bn_param):
     denom_inv = 1/np.sqrt(sample_var+eps)
     x_std = x_sub_mean*denom_inv
     out = x_std*gamma + beta.reshape(1, -1)
-    cache = (x, x_sub_mean, denom_inv, x_std, gamma, beta)
+    cache = (x_sub_mean, denom_inv, x_std, gamma, beta)
     running_mean = momentum * running_mean + (1 - momentum) * sample_mean
     running_var = momentum * running_var + (1 - momentum) * sample_var
     #############################################################################
@@ -223,7 +223,7 @@ def batchnorm_backward(dout, cache):
   - dbeta: Gradient with respect to shift parameter beta, of shape (D,)
   """
   dx, dgamma, dbeta = None, None, None
-  x, x_sub_mean, denom_inv, x_std, gamma, beta = cache
+  x_sub_mean, denom_inv, x_std, gamma, beta = cache
   #############################################################################
   # TODO: Implement the backward pass for batch normalization. Store the      #
   # results in the dx, dgamma, and dbeta variables.                           #
