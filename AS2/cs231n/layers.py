@@ -121,7 +121,7 @@ def batchnorm_forward(x, gamma, beta, bn_param):
 
   At each timestep we update the running averages for mean and variance using
   an exponential decay based on the momentum parameter:
-
+  
   running_mean = momentum * running_mean + (1 - momentum) * sample_mean
   running_var = momentum * running_var + (1 - momentum) * sample_var
 
@@ -150,7 +150,7 @@ def batchnorm_forward(x, gamma, beta, bn_param):
   mode = bn_param['mode']
   eps = bn_param.get('eps', 1e-5)
   momentum = bn_param.get('momentum', 0.9)
-
+  
   N, D = x.shape
   running_mean = bn_param.get('running_mean', np.zeros(D, dtype=x.dtype))
   running_var = bn_param.get('running_var', np.zeros(D, dtype=x.dtype))
@@ -170,7 +170,15 @@ def batchnorm_forward(x, gamma, beta, bn_param):
     # the momentum variable to update the running mean and running variance,    #
     # storing your result in the running_mean and running_var variables.        #
     #############################################################################
-    pass
+    sample_mean = np.mean(x, axis=0)
+    x_sub_mean = x - sample_mean
+    sample_var = np.sum(x_sub_mean**2, axis=0)/x.shape[0]
+    denom_inv = 1/np.sqrt(sample_var+eps)
+    x_std = x_sub_mean*denom_inv
+    out = x_std*gamma + beta.reshape(1, -1)
+    cache = (x, x_sub_mean, denom_inv, x_std, gamma, beta)
+    running_mean = momentum * running_mean + (1 - momentum) * sample_mean
+    running_var = momentum * running_var + (1 - momentum) * sample_var
     #############################################################################
     #                             END OF YOUR CODE                              #
     #############################################################################
@@ -181,7 +189,9 @@ def batchnorm_forward(x, gamma, beta, bn_param):
     # and shift the normalized data using gamma and beta. Store the result in   #
     # the out variable.                                                         #
     #############################################################################
-    pass
+    x_sum = np.sum(x, axis=0)
+    x_std = (x-running_mean)/np.sqrt(running_var+eps)
+    out = x_std*gamma + beta.reshape(1, -1)
     #############################################################################
     #                             END OF YOUR CODE                              #
     #############################################################################
@@ -213,11 +223,20 @@ def batchnorm_backward(dout, cache):
   - dbeta: Gradient with respect to shift parameter beta, of shape (D,)
   """
   dx, dgamma, dbeta = None, None, None
+  x, x_sub_mean, denom_inv, x_std, gamma, beta = cache
   #############################################################################
   # TODO: Implement the backward pass for batch normalization. Store the      #
   # results in the dx, dgamma, and dbeta variables.                           #
   #############################################################################
-  pass
+  dgamma = np.sum(x_std*dout, axis=0)
+  dbeta = np.sum(np.ones(x_std.shape)*dout, axis=0)
+  N = x_std.shape[0]
+  a = -np.ones((N, N))/N
+  a[xrange(N), xrange(N)] += 1
+  dx = a.dot(dout*gamma*denom_inv)
+  b = x_sub_mean*2/N
+  c = -0.5*np.sum(x_sub_mean*dout, axis=0)*(denom_inv**3)*gamma
+  dx += b*c
   #############################################################################
   #                             END OF YOUR CODE                              #
   #############################################################################
@@ -247,7 +266,7 @@ def batchnorm_backward_alt(dout, cache):
   # should be able to compute gradients with respect to the inputs in a       #
   # single statement; our implementation fits on a single 80-character line.  #
   #############################################################################
-  pass
+  
   #############################################################################
   #                             END OF YOUR CODE                              #
   #############################################################################
@@ -557,3 +576,4 @@ def softmax_loss(x, y):
   dx[np.arange(N), y] -= 1
   dx /= N
   return loss, dx
+
